@@ -17,3 +17,13 @@ add_executable(skiplist_test
     tests/skiplist_test.cpp
 )
 target_link_libraries(skiplist_test PRIVATE skiplist)
+
+add_library(wal
+    src/wal/wal.cpp
+)
+target_include_directories(wal PUBLIC include)
+
+add_executable(wal_test
+    tests/wal_test.cpp
+)
+target_link_libraries(wal_test PRIVATE wal)
