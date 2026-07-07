@@ -27,3 +27,16 @@ add_executable(wal_test
     tests/wal_test.cpp
 )
 target_link_libraries(wal_test PRIVATE wal)
+
+# ── MemTable 库 ──
+add_library(memtable
+    src/memtable/memtable.cpp
+)
+target_include_directories(memtable PUBLIC include)
+target_link_libraries(memtable PUBLIC skiplist wal)
+ 
+add_executable(memtable_test
+    tests/memtable_test.cpp
+)
+target_link_libraries(memtable_test PRIVATE memtable)
+ 
