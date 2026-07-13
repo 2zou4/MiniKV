@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include<functional>
+
 namespace minikv{
 
 // ──────────────────────────────────────────────
@@ -72,6 +74,16 @@ namespace minikv{
 
         // 估算内存占用（字节），用于 MemTable 判断是否需要刷盘
         size_t ApproximateMemoryUsage() const;
+
+    // 按 key 升序遍历所有节点（含懒删除节点），对每个节点调用 callback。
+    // 用途：SSTable 构建时需要把 MemTable 的全部数据按序导出到磁盘文件，
+    // 懒删除节点也要导出（写成 tombstone），否则 Compaction 时
+    // 无法知道某个 key 曾经被删除过，可能导致旧数据"复活"。
+    //
+    // callback 签名：void(const string& key, const string& value, bool is_deleted)
+        using EntryCallback=
+            std::function<void(const std::string&, const std::string&, bool)>;
+        void ForEach(const EntryCallback& callback) const;
 
     private:
         // 生成随机层数：从 1 开始，每次以 1/BRANCH 概率加一层，上限 MAX_LEVEL

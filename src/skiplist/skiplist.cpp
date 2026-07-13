@@ -184,4 +184,21 @@ namespace minikv{
         return mem_usage_;
     }
 
+// ──────────────────────────────────────────────
+// ForEach
+// ──────────────────────────────────────────────
+//
+// L0 层本身就是一条包含所有节点的完整有序链表，
+// 所以只需要沿 forward[0] 一路走到底，天然按 key 升序访问。
+// 不需要额外排序，这也是跳表作为 MemTable 底层结构的一个优势。
+
+    void SkipList::ForEach(const EntryCallback& callback) const{
+        SkipListNode* cur=head_->forward[0];
+        while(cur!=nullptr)
+        {
+            callback(cur->key, cur->value, cur->is_deleted);
+            cur=cur->forward[0];
+        }
+    }
+
 }
