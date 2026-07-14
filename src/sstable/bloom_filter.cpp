@@ -1,4 +1,4 @@
-#include "bloomfilter.h"
+#include "bloom_filter.h"
 #include <algorithm>
 #include <cmath>
 
@@ -15,7 +15,7 @@ uint32_t BloomFilter::Hash(const std::string& key){
     uint32_t hash=2166136261u;  // FNV offset basis
     for(char c:key){
         hash^=static_cast<uint8_t>(c);
-        hash *=kFnvPrime'
+        hash *= kFnvPrime;
     }
     return hash;
 }

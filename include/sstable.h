@@ -1,13 +1,13 @@
 #pragma once
- 
+
 #include <cstdint>
 #include <string>
 #include <vector>
- 
+
 #include "skiplist.h"
- 
+
 namespace minikv {
- 
+
 // ──────────────────────────────────────────────
 // SSTable 文件格式
 // ──────────────────────────────────────────────
@@ -30,15 +30,17 @@ namespace minikv {
 //   [index_offset(8B)][index_size(8B)][bloom_offset(8B)][bloom_size(8B)]
 //   记录 Index Block 和 Bloom Filter 在文件中的位置，
 //   打开文件时先读 Footer（位置固定，在文件末尾），再据此找到其他部分。
-class SSTable{
-    public:
+
+class SSTable {
+public:
     // 每个 Data Block 打包的记录数。真实数据库通常按字节大小分块（比如 4KB），
     // 这里为了实现简单、逻辑清晰，改用固定记录数分块，效果类似。
-    static constexpr size_t kBlockRecordCount=16;
+    static constexpr size_t kBlockRecordCount = 16;
 
     // 把一个 SkipList（通常是刷盘前的 MemTable）的全部数据写成一个 SSTable 文件。
     // 返回 false 表示写入失败（磁盘 IO 错误等）。
-    static bool BuildFromSkipList(const SkipList& table, const std::string& file_path);
+    static bool BuildFromSkipList(const SkipList& table,
+                                   const std::string& file_path);
 
     // 打开一个已存在的 SSTable 文件用于查询。
     // 构造时只读取 Footer + Index + Bloom Filter（体积很小），
@@ -50,27 +52,28 @@ class SSTable{
     // 返回 false：key 不存在，或者存在但已被标记删除（tombstone）。
     bool Get(const std::string& key, std::string* value) const;
 
-    private:
+private:
     // 内存中的索引项：对应文件里 Index Block 的一条记录
-    struct IndexEntry{
+    struct IndexEntry {
         std::string first_key;
-        uint64_t block_offset;
-        uint64_t block_size;
+        uint64_t    block_offset;
+        uint64_t    block_size;
     };
 
-    std::string file_path_;
-    std::vector<IndexEntry> indedx_;
-    std::string bloom_data_;
-    bool valid_=false;
+    std::string              file_path_;
+    std::vector<IndexEntry>  index_;
+    std::string              bloom_data_;
+    bool                     valid_ = false;
 
     // 构造时调用：读 Footer，再据此读 Index 和 Bloom Filter 到内存
     bool LoadMetadata();
 
     // 按需读取指定偏移和大小的 Data Block 原始字节
-    bool ReadBlock(uint64_t offset, uint64_t size, std::string& out) const;
+    bool ReadBlock(uint64_t offset, uint64_t size, std::string* out) const;
 
     // 在 index_ 中二分查找：key 可能落在哪个 Data Block
     // 返回 -1 表示 key 比所有 Data Block 的 first_key 都小，不可能存在
     int FindCandidateBlock(const std::string& key) const;
 };
-}
+
+}  // namespace minikv
