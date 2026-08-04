@@ -103,6 +103,7 @@ namespace minikv{
                 candidate->is_deleted=false;
                 ++size_;
                 mem_usage_ +=value.size();
+                mem_usage_ -= candidate->value.size();
             }
             else
             {

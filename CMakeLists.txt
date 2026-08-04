@@ -58,3 +58,13 @@ add_executable(sstable_test
     tests/sstable_test.cpp
 )
 target_link_libraries(sstable_test PRIVATE sstable)
+
+add_library(compaction
+    src/compaction/compaction.cpp
+)
+target_include_directories(compaction PUBLIC include)
+
+add_executable(compaction_test
+    tests/compaction_test.cpp
+)
+target_link_libraries(compaction_test PRIVATE compaction)

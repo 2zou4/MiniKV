@@ -6,7 +6,7 @@ namespace minikv{
     // ──────────────────────────────────────────────
 // Hash：FNV-1a 32位哈希
 // ──────────────────────────────────────────────
-//
+//目的：不同的 key 要尽量均匀地散布到 bit 数组的不同位置
 // FNV-1a 是一个简单、快速、分布均匀的非加密哈希算法，
 // 逐字节处理，用异或+乘法混合，足够满足 Bloom Filter 对哈希质量的要求。
 
@@ -39,7 +39,7 @@ std::string BloomFilter::Build(const std::vector<std::string>& keys, int bits_pe
 
     size_t num_bits=std::max<size_t>(keys.size()*bits_per_key,64);
     // 向上取整到 8 的倍数，保证能用整数个字节表示
-    num_bits=((num_bits+7)/8)*8;
+    num_bits=((num_bits+7)/8)*8;//"向上取整到 8 的倍数"写法，因为最终要按字节（8 bit 一组）存储
     size_t num_bytes=num_bits/8;
 
     // 多申请 1 个字节，用来存 k
