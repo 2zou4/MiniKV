@@ -85,7 +85,7 @@ void TestDuplicateKeyAcrossThreeSources() {
     auto result=KWayMerger::Merge(sources,false);
 
     CHECK(result.size()==1);
-    CHECK(result[0].value=="newwst");
+    CHECK(result[0].value=="newest");
 
     std::cout << "PASS\n";
 }

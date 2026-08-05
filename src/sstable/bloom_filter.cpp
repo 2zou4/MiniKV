@@ -49,7 +49,7 @@ std::string BloomFilter::Build(const std::vector<std::string>& keys, int bits_pe
         uint32_t h=Hash(key);
         // delta 用于生成"第二个哈希函数"，通过旋转位移得到，
         // 避免真的写第二个哈希算法
-        const uint32_t delta=(h>>17) | (h<<25);
+        const uint32_t delta=(h>>17) | (h<<15);
 
         for(int i=0;i<k;++i){
             uint32_t bit_pos=h%num_bits;

@@ -6,6 +6,8 @@
 
 #include "skiplist.h"
 
+#include <functional>
+
 namespace minikv {
 
 // ──────────────────────────────────────────────
@@ -37,10 +39,21 @@ public:
     // 这里为了实现简单、逻辑清晰，改用固定记录数分块，效果类似。
     static constexpr size_t kBlockRecordCount = 16;
 
+    //新增内容
+    struct Entry{
+        std::string key;
+        std::string value;
+        bool is_deleted;
+    };
+
     // 把一个 SkipList（通常是刷盘前的 MemTable）的全部数据写成一个 SSTable 文件。
     // 返回 false 表示写入失败（磁盘 IO 错误等）。
     static bool BuildFromSkipList(const SkipList& table,
                                    const std::string& file_path);
+
+    //新增
+    static bool BuildFromEntries(const std::vector<Entry>& entries,
+                                    const std::string& file_path);
 
     // 打开一个已存在的 SSTable 文件用于查询。
     // 构造时只读取 Footer + Index + Bloom Filter（体积很小），
@@ -51,6 +64,11 @@ public:
     // 返回 true 并通过 value 带出结果：key 存在且未被删除。
     // 返回 false：key 不存在，或者存在但已被标记删除（tombstone）。
     bool Get(const std::string& key, std::string* value) const;
+
+    //新增
+    using EntryCallback=
+        std::function<void(const std::string&, const std::string&, bool)>;
+    bool ForEach(const EntryCallback& callback) const;
 
 private:
     // 内存中的索引项：对应文件里 Index Block 的一条记录
@@ -74,6 +92,10 @@ private:
     // 在 index_ 中二分查找：key 可能落在哪个 Data Block
     // 返回 -1 表示 key 比所有 Data Block 的 first_key 都小，不可能存在
     int FindCandidateBlock(const std::string& key) const;
+
+    //新增
+    static bool WriteEntries(const std::vector<Entry>& entries,
+                                const std::string& file_path);
 };
 
 }  // namespace minikv

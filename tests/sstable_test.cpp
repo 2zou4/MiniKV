@@ -154,6 +154,52 @@ void TestOpenNonexistentFile(){
     std::cout << "PASS\n";
 }
 
+//新增 用于测试ForEach BuildFromEntries
+void TestForEachMatchesContent() {
+    std::cout << "[TEST] ForEachMatchesContent ... ";
+    RemoveTestFile();
+    SkipList sl;
+    sl.Insert("a", "1");
+    sl.Insert("b", "2");
+    sl.Delete("b");          // b 被删除，变成 tombstone
+    sl.Insert("c", "3");
+    CHECK(SSTable::BuildFromSkipList(sl, kTestFile));
+
+    SSTable sst(kTestFile);
+    std::vector<std::string> keys;
+    std::vector<bool> deleted;
+    bool ok = sst.ForEach([&](const std::string& k, const std::string&, bool del) {
+        keys.push_back(k);
+        deleted.push_back(del);
+    });
+    CHECK(ok);
+    CHECK(keys.size() == 3);              // a, b, c 都在，包括被删除的 b
+    CHECK(keys[0] == "a" && !deleted[0]);
+    CHECK(keys[1] == "b" && deleted[1]);  // b 是 tombstone，deleted 标记应为 true
+    CHECK(keys[2] == "c" && !deleted[2]);
+    RemoveTestFile();
+    std::cout << "PASS\n";
+}
+
+void TestBuildFromEntriesDirectly() {
+    std::cout << "[TEST] BuildFromEntriesDirectly ... ";
+    RemoveTestFile();
+    std::vector<SSTable::Entry> entries = {
+        {"x", "10", false},
+        {"y", "20", false},
+        {"z", "", true},        // 直接构造一条 tombstone，不经过 SkipList::Delete
+    };
+    CHECK(SSTable::BuildFromEntries(entries, kTestFile));
+
+    SSTable sst(kTestFile);
+    std::string val;
+    CHECK(sst.Get("x", &val) && val == "10");
+    CHECK(sst.Get("y", &val) && val == "20");
+    CHECK(!sst.Get("z", &val));  // tombstone，Get 应该返回 false
+    RemoveTestFile();
+    std::cout << "PASS\n";
+}
+
 // ──────────────────────────────────────────────
 // main
 // ──────────────────────────────────────────────
@@ -162,6 +208,10 @@ int main(){
     std::cout << "=== SSTable Unit Tests ===\n";
  
     TestBasicBuildAndGet();
+    
+    TestForEachMatchesContent();        // ← 新增
+    TestBuildFromEntriesDirectly();     // ← 新增
+
     TestTombstonePreserved();
     TestMultipleBlocks();
     TestEmptySkipList();

@@ -37,7 +37,7 @@ constexpr size_t kFooterSize = 32;  // 4个 uint64_t 字段
 
 }  // namespace
 
-// ──────────────────────────────────────────────
+/*// ──────────────────────────────────────────────
 // BuildFromSkipList
 // ──────────────────────────────────────────────
 //
@@ -73,6 +73,83 @@ bool SSTable::BuildFromSkipList(const SkipList& table,
     table.ForEach([&](const std::string& k, const std::string& v, bool del) {
         entries.push_back({k, v, del});
     });
+
+    std::vector<IndexEntry> index;
+    std::vector<std::string> all_keys;
+    all_keys.reserve(entries.size());
+
+    // 第二步：按 kBlockRecordCount 条一组，写 Data Block，同时记录索引
+    for (size_t i = 0; i < entries.size(); i += kBlockRecordCount) {
+        uint64_t block_offset = static_cast<uint64_t>(out.tellp());
+        std::string first_key = entries[i].key;
+
+        size_t end = std::min(i + kBlockRecordCount, entries.size());
+        for (size_t j = i; j < end; ++j) {
+            const Entry& e = entries[j];
+            uint32_t key_len   = static_cast<uint32_t>(e.key.size());
+            uint32_t value_len = static_cast<uint32_t>(e.value.size());
+            uint8_t  del_flag  = e.is_deleted ? 1 : 0;
+
+            WriteU32(out, key_len);
+            WriteU32(out, value_len);
+            out.write(reinterpret_cast<const char*>(&del_flag), sizeof(del_flag));
+            out.write(e.key.data(),   e.key.size());
+            out.write(e.value.data(), e.value.size());
+
+            all_keys.push_back(e.key);
+        }
+
+        uint64_t block_size = static_cast<uint64_t>(out.tellp()) - block_offset;
+        index.push_back({first_key, block_offset, block_size});
+    }
+
+    // 第三步：写 Bloom Filter
+    std::string bloom_data = BloomFilter::Build(all_keys);
+    uint64_t bloom_offset = static_cast<uint64_t>(out.tellp());
+    out.write(bloom_data.data(), bloom_data.size());
+    uint64_t bloom_size = bloom_data.size();
+
+    // 第四步：写 Index Block
+    uint64_t index_offset = static_cast<uint64_t>(out.tellp());
+    for (const auto& entry : index) {
+        uint32_t key_len = static_cast<uint32_t>(entry.first_key.size());
+        WriteU32(out, key_len);
+        out.write(entry.first_key.data(), entry.first_key.size());
+        WriteU64(out, entry.block_offset);
+        WriteU64(out, entry.block_size);
+    }
+    uint64_t index_size = static_cast<uint64_t>(out.tellp()) - index_offset;
+
+    // 第五步：写 Footer（固定 32 字节，位于文件末尾）
+    WriteU64(out, index_offset);
+    WriteU64(out, index_size);
+    WriteU64(out, bloom_offset);
+    WriteU64(out, bloom_size);
+
+    out.flush();
+    bool ok = out.good();
+    out.close();
+    return ok;
+}*/
+
+bool SSTable::BuildFromSkipList(const SkipList& table, const std::string& file_path){
+    std::vector<Entry> entries;
+    table.ForEach([&](const std::string& k, const std::string& v, bool del){
+        entries.push_back({k,v,del});
+    });
+    return WriteEntries(entries, file_path);
+}
+
+bool SSTable::BuildFromEntries(const std::vector<Entry>& entries, const std::string& file_path){
+    return WriteEntries(entries,file_path);
+}
+
+bool SSTable::WriteEntries(const std::vector<Entry>& entries,
+                            const std::string& file_path){
+    std::ofstream out(file_path, std::ios::binary | std::ios::trunc);
+    if (!out.is_open()) {
+        return false;
+    }
 
     std::vector<IndexEntry> index;
     std::vector<std::string> all_keys;
@@ -297,6 +374,45 @@ bool SSTable::Get(const std::string& key, std::string* value) const {
     }
 
     return false;
+}
+
+// ──────────────────────────────────────────────
+// ForEach
+// ──────────────────────────────────────────────
+//
+// index_ 本身就是按 first_key 升序排列的（Data Block 写入时就是有序的），
+// 所以只需要按 index_ 的顺序依次读取每个 Block，再在 Block 内部
+// 按记录先后顺序解析，整体天然产出一个按 key 升序的完整遍历。
+bool SSTable::ForEach(const EntryCallback& callback) const{
+    if(!valid_) return false;
+
+    for(const auto& entry : index_){
+        std::string block_data;
+        if(!ReadBlock(entry.block_offset, entry.block_size, &block_data)){
+            return false;
+        }
+
+        size_t pos=0;
+        while(pos<block_data.size()){
+            uint32_t key_len,value_len;
+            uint8_t del_flag;
+
+            std::memcpy(&key_len, block_data.data()+pos,sizeof(key_len));
+            pos+=sizeof(key_len);
+            std::memcpy(&value_len, block_data.data()+pos,sizeof(value_len));
+            pos+=sizeof(value_len);
+            std::memcpy(&del_flag, block_data.data()+pos,sizeof(del_flag));
+            pos+=sizeof(del_flag);
+
+            std::string cur_key=block_data.substr(pos,key_len);
+            pos+=key_len;
+            std::string cur_value=block_data.substr(pos,value_len);
+            pos+=value_len;
+
+            callback(cur_key, cur_value, del_flag!=0);
+        }
+    }
+    return true;
 }
 
 }  // namespace minikv
