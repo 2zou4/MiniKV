@@ -41,4 +41,15 @@ class KWayMerger{
     static std::vector<KVEntry>Merge
         (const std::vector<std::vector<KVEntry>>& sources, bool drop_tombstones);
     };
+
+//新增
+class Compaction{
+    public:
+    static bool CompactFiles(const std::vector<std::string>& input_paths,
+                                        const std::string& output_path,
+                                        bool drop_tombstones);
+};
 }
+
+
+

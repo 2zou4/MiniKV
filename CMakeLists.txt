@@ -63,6 +63,7 @@ add_library(compaction
     src/compaction/compaction.cpp
 )
 target_include_directories(compaction PUBLIC include)
+target_link_libraries(compaction PUBLIC sstable)
 
 add_executable(compaction_test
     tests/compaction_test.cpp

@@ -1,5 +1,7 @@
 #include "compaction.h"
 
+#include "sstable.h"
+
 #include<queue>
 #include<vector>
 
@@ -86,4 +88,37 @@ std::vector<KVEntry> KWayMerger::Merge(
         }
         return result;
     }
+
+    bool Compaction::CompactFiles(const std::vector<std::string>& input_paths,
+                                        const std::string& output_path,
+                                        bool drop_tombstones){
+        std::vector<std::vector<KVEntry>> sources;
+        sources.reserve(input_paths.size());
+
+        for(const auto& path:input_paths){
+            SSTable sst(path);
+
+            std::vector<KVEntry> entries;
+            bool ok=sst.ForEach([&](const std::string& k, const std::string& v, bool del){
+                entries.push_back({k,v,del});
+            });
+
+            if(!ok){
+                return false;// 某个输入文件读取失败，整体合并中止
+            }
+
+            sources.push_back(std::move(entries));
+        }
+
+        std::vector<KVEntry> merged=KWayMerger::Merge(sources,drop_tombstones);
+
+        std::vector<SSTable::Entry> output_entries;
+        output_entries.reserve(merged.size());
+        for(const auto& e:merged){
+            output_entries.push_back({e.key,e.value,e.is_deleted});
+        }
+        return SSTable::BuildFromEntries(output_entries,output_path);
+    }
+
+
 }
