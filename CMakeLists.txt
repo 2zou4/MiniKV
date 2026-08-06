@@ -69,3 +69,13 @@ add_executable(compaction_test
     tests/compaction_test.cpp
 )
 target_link_libraries(compaction_test PRIVATE compaction)
+
+# ── LevelManager 库 ──
+add_library(level_manager
+    src/level_manager/level_manager.cpp
+)
+target_include_directories(level_manager PUBLIC include)
+target_link_libraries(level_manager PUBLIC compaction)
+ 
+add_executable(level_manager_test tests/level_manager_test.cpp)
+target_link_libraries(level_manager_test PRIVATE level_manager)
