@@ -7,6 +7,8 @@
 
 #include<functional>
 
+#include"lookup_result.h"
+
 namespace minikv{
 
 // ──────────────────────────────────────────────
@@ -67,6 +69,10 @@ namespace minikv{
         // 返回 true 并通过 value 带出结果
         // 若 key 不存在，或已被懒删除，返回 false
         bool Get(const std::string& key,std::string* value) const;
+
+        // 三态查询：区分"确定不存在"和"存在但已删除"。
+        // 跨多层查询（见 db.h）依赖这个区分来判断要不要继续往更旧的层找。
+        LookupResult Find(const std::string& key, std::string* value) const;
 
         // 返回当前节点数（不含 HEAD，不含已懒删除节点）
         int Size() const {return size_;}

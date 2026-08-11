@@ -61,8 +61,13 @@ void TestLazyDelete(){
     CHECK(sl.Size()==0);
     CHECK(!sl.Get("x",&val));
 
-    //删除不存在的key应返回false
-    CHECK(!sl.Delete("noneexistent"));
+    // //删除不存在的key应返回false
+    // CHECK(!sl.Delete("noneexistent"));
+
+    // Delete 语义已更新：不管 key 是否存在，都会留下 tombstone 记录（返回 true），
+    // 这是为了让 Delete 能正确覆盖更旧层（磁盘 SSTable）里可能存在的同名 key
+    CHECK(sl.Delete("noneexistent"));       // 返回 true：tombstone 记录成功
+    CHECK(!sl.Get("noneexistent", &val));   // 但 Get 依然查不到（本来就没有）
     std::cout << "PASS\n";
 }
 void TestReinsertAfterDelete(){
@@ -110,7 +115,11 @@ void TestEmpty(){
     CHECK(sl.Empty());
     CHECK(sl.Size()==0);
     CHECK(!sl.Get("any",&val));
-    CHECK(!sl.Delete("any"));
+    // CHECK(!sl.Delete("any"));
+
+    // Delete 语义已更新：即使跳表是空的，Delete 也会成功写入一条 tombstone，返回 true
+    CHECK(sl.Delete("any"));
+    CHECK(!sl.Get("any", &val));  // Get 依然查不到
 
     std::cout << "PASS\n";
 }

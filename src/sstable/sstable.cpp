@@ -317,7 +317,7 @@ int SSTable::FindCandidateBlock(const std::string& key) const {
 // Get
 // ──────────────────────────────────────────────
 
-bool SSTable::Get(const std::string& key, std::string* value) const {
+/*bool SSTable::Get(const std::string& key, std::string* value) const {
     if (!valid_) {
         return false;
     }
@@ -374,6 +374,60 @@ bool SSTable::Get(const std::string& key, std::string* value) const {
     }
 
     return false;
+}*/
+
+// ──────────────────────────────────────────────
+// Find / Get
+// ──────────────────────────────────────────────
+//
+// 和 SkipList 一样：Find 是唯一真正做查找的地方，
+// Get 只是把三态结果压缩成 bool，避免逻辑分叉成两份。
+LookupResult SSTable::Find(const std::string& key, std::string* value) const{
+    if(!valid_) return LookupResult::kNotFound;
+
+    if(!BloomFilter::MayContain(bloom_data_,key)){
+        return LookupResult::kNotFound;
+    }
+
+    int block_idx=FindCandidateBlock(key);
+    if(block_idx<0) return LookupResult::kNotFound;
+
+    const IndexEntry& entry=index_[block_idx];
+    std::string block_data;
+    if(!ReadBlock(entry.block_offset, entry.block_size, &block_data)){
+        return LookupResult::kNotFound;
+    }
+
+    size_t pos=0;
+    while(pos<block_data.size()){
+        uint32_t key_len, value_len;
+        uint8_t  del_flag;
+ 
+        std::memcpy(&key_len, block_data.data() + pos, sizeof(key_len));
+        pos += sizeof(key_len);
+        std::memcpy(&value_len, block_data.data() + pos, sizeof(value_len));
+        pos += sizeof(value_len);
+        std::memcpy(&del_flag, block_data.data() + pos, sizeof(del_flag));
+        pos += sizeof(del_flag);
+ 
+        std::string cur_key = block_data.substr(pos, key_len);
+        pos += key_len;
+        std::string cur_value = block_data.substr(pos, value_len);
+        pos += value_len;
+ 
+        if (cur_key == key) {
+            if (del_flag) return LookupResult::kDeleted;
+            if (value) *value = cur_value;
+            return LookupResult::kFound;
+        }
+        if (cur_key > key) break;
+    }
+ 
+    return LookupResult::kNotFound;
+    }
+
+    bool SSTable::Get(const std::string& key, std::string* value) const {
+    return Find(key, value) == LookupResult::kFound;
 }
 
 // ──────────────────────────────────────────────

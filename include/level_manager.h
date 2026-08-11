@@ -55,6 +55,10 @@ public:
     // 当前 L1 文件路径（可能为空字符串，表示还没有 L1 文件）
     std::string L1FilePath() const;
 
+    // 当前 L0 文件路径列表，追加顺序（旧→新）。
+    // 跨层查询时需要"从新到旧"访问，调用方自行反向遍历。
+    const std::vector<std::string>& L0FilePaths() const { return l0_files_; }
+
 private:
     std::string              dir_;
     std::vector<std::string> l0_files_;  // 追加顺序 = 从旧到新

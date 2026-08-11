@@ -79,3 +79,12 @@ target_link_libraries(level_manager PUBLIC compaction)
  
 add_executable(level_manager_test tests/level_manager_test.cpp)
 target_link_libraries(level_manager_test PRIVATE level_manager)
+
+add_library(db
+    src/db/db.cpp
+)
+target_include_directories(db PUBLIC include)
+target_link_libraries(db PUBLIC memtable level_manager sstable)
+
+add_executable(db_test tests/db_test.cpp)
+target_link_libraries(db_test PRIVATE db)

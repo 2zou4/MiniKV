@@ -73,6 +73,10 @@ MemTable:: MemTable(const std::string& wal_path, size_t flush_threshold)
         return table_->Get(key,value);
     }
 
+    LookupResult MemTable::Find(const std::string& key, std::string* value) const{
+        return table_->Find(key,value);
+    }
+
 // ──────────────────────────────────────────────
 // Full / Size / MarkFlushed
 // ──────────────────────────────────────────────

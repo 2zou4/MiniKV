@@ -50,6 +50,9 @@ class MemTable{
     // 查询一个 key，只读 SkipList，不涉及 WAL。
     bool Get(const std::string& key, std::string* value) const;
 
+    // 三态查询，供跨层统一查询（DB 类）使用
+    LookupResult Find(const std::string& key, std::string* value) const;
+
     // 当前 SkipList 的内存占用是否超过阈值，达到了该刷盘的时机。
     bool Full() const;
 
@@ -59,6 +62,9 @@ class MemTable{
     // 刷盘之后调用：清空 WAL（这些数据已经落到 SSTable 了，不再需要日志恢复）
     // 具体的"生成 SSTable"逻辑属于后续模块，这里只负责清理 WAL。
     void MarkFlushed();
+
+    // 供 SSTable 构建使用：暴露内部 SkipList 以便遍历
+    const SkipList& Table() const{return *table_;}
 
 private:
         std::unique_ptr<SkipList> table_;

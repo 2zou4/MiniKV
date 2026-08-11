@@ -65,6 +65,10 @@ public:
     // 返回 false：key 不存在，或者存在但已被标记删除（tombstone）。
     bool Get(const std::string& key, std::string* value) const;
 
+    // 三态查询：区分"确定不存在"和"存在但已删除"，
+    // 用途和 SkipList::Find 一样，供跨层查询判断要不要继续往更旧的层找。
+    LookupResult Find(const std::string& key, std::string* value) const;
+
     //新增
     using EntryCallback=
         std::function<void(const std::string&, const std::string&, bool)>;
