@@ -128,7 +128,7 @@ void TestL0TombstoneStopsBeforeL1() {
         db.Levels().AddL0File(filler);
     }
     db.Levels().AddL0File(l0);
-    CHECK(db.Levels().MaybeCompact());  // 触发合并：3个filler + l0 tombstone 一起合并进 L1
+    CHECK(db.MaybeCompact());  // 触发合并：3个filler + l0 tombstone 一起合并进 L1
  
     std::string val;
     // 合并后 L1 应该已经吸收了这条 tombstone，直接清除了 deleted_key
@@ -167,7 +167,7 @@ void TestFoundInL1AsLastResort() {
         created.push_back(path);
         db.Levels().AddL0File(path);
     }
-    CHECK(db.Levels().MaybeCompact());
+    CHECK(db.MaybeCompact());
  
     std::string val;
     CHECK(db.Get("deep_key", &val) && val == "deep_value");

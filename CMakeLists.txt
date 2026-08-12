@@ -88,3 +88,9 @@ target_link_libraries(db PUBLIC memtable level_manager sstable)
 
 add_executable(db_test tests/db_test.cpp)
 target_link_libraries(db_test PRIVATE db)
+
+add_executable(db_concurrency_test tests/db_concurrency_test.cpp)
+target_link_libraries(db_concurrency_test PRIVATE db pthread)
+
+add_executable(db_scan_test tests/db_scan_test.cpp)
+target_link_libraries(db_scan_test PRIVATE db)

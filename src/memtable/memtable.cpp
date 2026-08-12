@@ -77,6 +77,10 @@ MemTable:: MemTable(const std::string& wal_path, size_t flush_threshold)
         return table_->Find(key,value);
     }
 
+    void MemTable::ForEach(const EntryCallback& callback) const{
+        table_->ForEach(callback);
+    }
+
 // ──────────────────────────────────────────────
 // Full / Size / MarkFlushed
 // ──────────────────────────────────────────────

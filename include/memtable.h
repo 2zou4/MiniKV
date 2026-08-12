@@ -5,6 +5,8 @@
  
 #include "skiplist.h"
 #include "wal.h"
+
+#include <functional>
  
 namespace minikv {
 
@@ -52,6 +54,12 @@ class MemTable{
 
     // 三态查询，供跨层统一查询（DB 类）使用
     LookupResult Find(const std::string& key, std::string* value) const;
+
+    // 按 key 升序遍历全部记录（含 tombstone），用途和
+    // SkipList::ForEach / SSTable::ForEach 一致，供 Scan 使用。
+    using EntryCallback=
+        std::function<void(const  std::string&, const std::string&, bool)>;
+    void ForEach(const EntryCallback& callback) const;
 
     // 当前 SkipList 的内存占用是否超过阈值，达到了该刷盘的时机。
     bool Full() const;
